@@ -36,4 +36,7 @@ module Sprockets
       EXTENSIONS.include?(File.extname(input[:name]))
     end
   end
+
+  register_postprocessor 'application/javascript', CommonJS
+  append_path File.expand_path('../../../assets', __FILE__)
 end
