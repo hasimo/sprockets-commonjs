@@ -1,5 +1,4 @@
 require 'sprockets'
-require 'tilt'
 
 module Sprockets
   class CommonJS
@@ -10,6 +9,12 @@ module Sprockets
 
     EXTENSIONS = %w{.module .cjs}
 
+    class << self
+      attr_accessor :default_namespace
+    end
+
+    self.default_namespace = 'this.require'
+
     def self.instance
       @instance ||= new
     end
@@ -19,19 +24,46 @@ module Sprockets
     end
 
     def call(input)
-      if commonjs_module?(input)
+      name   = input[:name]
+      source = input[:data]
+
+      if commonjs_module?(name)
         required  = Set.new(input[:metadata][:required])
-        required << input[:environment].resolve("sprockets/commonjs.js")[0]
-        { data: WRAPPER % [ input[:name], input[:data] ], required: required }
+        required << add_required(input)
+
+        {
+          data: wrap(name, source),
+          required: required
+        }
+
       else
-        input[:data]
+        source
       end
     end
 
-    private
+    protected
 
-    def commonjs_module?(input)
-      EXTENSIONS.include?(File.extname(input[:name]))
+    def wrap(name, source)
+      WRAPPER % [ namespace, module_name(name), source ]
+    end
+
+    def add_required(input)
+      path = input[:environment].resolve("sprockets/commonjs.js")
+      'file://%s?type=application/javascript' % path
+    end
+
+    def namespace
+      self.class.default_namespace
+    end
+
+    def commonjs_module?(filename)
+      EXTENSIONS.include?(File.extname(filename))
+    end
+
+    def module_name(path)
+      path.gsub(/^\.?\//, '') # Remove relative paths
+          .chomp('.module')   # Remove module ext
+          .inspect
     end
   end
 
