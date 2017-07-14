@@ -18,8 +18,6 @@ module Sprockets
       instance.call(input)
     end
 
-    protected
-
     def call(input)
       if commonjs_module?(input)
         required  = Set.new(input[:metadata][:required])
